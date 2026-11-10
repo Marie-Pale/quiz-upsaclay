@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Vie Étudiante - Université Paris-Saclay</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Page d'accueil -->
+    <div id="home-screen" class="screen">
+      <header class="header">
+        <h1>Quiz Vie Étudiante</h1>
+        <p class="subtitle">Testez vos connaissances sur la vie étudiante !</p>
+      </header>
+
+      <div class="home-content">
+        <div class="name-input-container">
+          <h2>Quel est votre prénom ?</h2>
+          <input type="text" id="player-name" placeholder="Entrez votre prénom" class="name-input">
+          <button class="btn" onclick="startGame()">Commencer le Quiz</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Écran de quiz -->
+    <div id="quiz-screen" class="screen" style="display: none;">
+      <header class="quiz-header">
+        <div class="player-info">
+          <span id="player-name-display"></span>
+          <span id="score-display" class="score">Score: 0</span>
+        </div>
+      </header>
+
+      <div class="quiz-container">
+        <div class="card">
+          <div id="quiz-question" class="quiz-section">
+            <div class="question-container">
+              <div class="question-info">
+                <span id="question-counter">Question 1/10</span>
+              </div>
+              <h2 id="question-text" class="question"></h2>
+              <div id="options-container" class="options"></div>
+              <div id="feedback-container" class="feedback" style="display: none;">
+                <p id="feedback-text"></p>
+                <button class="btn" onclick="nextQuestion()" id="next-btn">Continuer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Écran de fin -->
+    <div id="end-screen" class="screen" style="display: none;">
+      <div class="end-content">
+        <h1>Félicitations, <span id="final-player-name">Joueur</span> !</h1>
+        <p id="final-score" class="score"></p>
+        <p>Merci d'avoir participé au Quiz Vie Étudiante.</p>
+        <button class="btn" onclick="restartGame()">Recommencer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chargement des scripts -->
+  <script src="questions.js"></script>
+  <script>
+    // Variables globales
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let shuffledQuestions = [];
+    let playerName = "";
+
+    // DOM Elements
+    const homeScreen = document.getElementById('home-screen');
+    const quizScreen = document.getElementById('quiz-screen');
+    const endScreen = document.getElementById('end-screen');
+    const playerNameInput = document.getElementById('player-name');
+    const playerNameDisplay = document.getElementById('player-name-display');
+    const finalPlayerName = document.getElementById('final-player-name');
+    const questionText = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options-container');
+    const feedbackContainer = document.getElementById('feedback-container');
+    const feedbackText = document.getElementById('feedback-text');
+    const nextBtn = document.getElementById('next-btn');
+    const questionCounter = document.getElementById('question-counter');
+    const scoreDisplay = document.getElementById('score-display');
+    const finalScore = document.getElementById('final-score');
+
+    // Démarrer le jeu
+    function startGame() {
+      playerName = playerNameInput.value.trim() || "Joueur";
+      if (playerName) {
+        homeScreen.style.display = 'none';
+        quizScreen.style.display = 'block';
+        playerNameDisplay.textContent = `Bonjour, ${playerName} !`;
+        startQuiz();
+      } else {
+        alert("Veuillez entrer votre prénom !");
+      }
+    }
+
+    // Retour à l'accueil
+    function goToHome() {
+      endScreen.style.display = 'none';
+      homeScreen.style.display = 'block';
+      playerNameInput.value = "";
+    }
+
+    // Démarrer le quiz
+    function startQuiz() {
+      if (typeof questions === 'undefined' || questions.length === 0) {
+        alert("Erreur : Aucune question trouvée. Vérifiez le fichier questions.js.");
+        return;
+      }
+      shuffledQuestions = [...questions].sort(() => Math.random() - 0.5);
+      currentQuestionIndex = 0;
+      score = 0;
+      scoreDisplay.textContent = `Score: ${score}`;
+      showQuestion();
+    }
+
+    // Afficher une question
+    function showQuestion() {
+      const question = shuffledQuestions[currentQuestionIndex];
+      questionText.textContent = question.question;
+      questionCounter.textContent = `Question ${currentQuestionIndex + 1}/${shuffledQuestions.length}`;
+      scoreDisplay.textContent = `Score: ${score}`;
+
+      // Vider les options précédentes
+      optionsContainer.innerHTML = '';
+
+      // Afficher les options en fonction du type de question
+      if (question.type === 'QCM') {
+        question.options.forEach((option) => {
+          const optionElement = document.createElement('div');
+          optionElement.className = 'option';
+          optionElement.textContent = option;
+          optionElement.onclick = () => selectAnswer(option, question);
+          optionsContainer.appendChild(optionElement);
+        });
+      } else if (question.type === 'Vrai/Faux') {
+        question.options.forEach((option) => {
+          const optionElement = document.createElement('div');
+          optionElement.className = 'option';
+          optionElement.textContent = option;
+          optionElement.onclick = () => selectAnswer(option, question);
+          optionsContainer.appendChild(optionElement);
+        });
+      }
+
+      // Masquer le feedback
+      feedbackContainer.style.display = 'none';
+    }
+
+    // Sélectionner une réponse
+    function selectAnswer(selectedOption, question) {
+      const options = optionsContainer.querySelectorAll('.option');
+      options.forEach(option => {
+        option.style.pointerEvents = 'none';
+      });
+
+      const isCorrect = selectedOption === question.correctAnswer;
+      if (isCorrect) {
+        score += question.points;
+        scoreDisplay.textContent = `Score: ${score}`;
+      }
+
+      feedbackText.innerHTML = `
+        <strong>${isCorrect ? '✓ Bonne réponse !' : '✗ Mauvaise réponse.'}</strong><br>
+        ${question.explanation}
+      `;
+      feedbackContainer.style.display = 'block';
+
+      options.forEach(option => {
+        if (option.textContent === question.correctAnswer) {
+          option.classList.add('correct');
+        } else if (option.textContent === selectedOption) {
+          option.classList.add('incorrect');
+        }
+      });
+
+      if (currentQuestionIndex < shuffledQuestions.length - 1) {
+        nextBtn.textContent = 'Question suivante';
+      } else {
+        nextBtn.textContent = 'Voir mon score';
+      }
+    }
+
+    // Passer à la question suivante
+    function nextQuestion() {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < shuffledQuestions.length) {
+        showQuestion();
+      } else {
+        quizScreen.style.display = 'none';
+        endScreen.style.display = 'block';
+        finalPlayerName.textContent = playerName;
+        finalScore.textContent = `Votre score final : ${score} points !`;
+      }
+    }
+
+    // Recommencer le jeu
+    function restartGame() {
+      goToHome();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Présentateur - Quiz Vie Étudiante</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1>
+        <i class="fas fa-chalkboard-teacher"></i>
+        Mode Présentateur - Quiz Vie Étudiante
+      </h1>
+    </header>
+
+    <div class="presenter-container">
+      <!-- Section Questions -->
+      <div class="presenter-questions">
+        <div class="card">
+          <h2>Question Actuelle</h2>
+          <div id="current-question-container">
+            <p class="question" id="presenter-question">Sélectionnez une question pour commencer.</p>
+            <div id="presenter-options" class="options"></div>
+            <div id="presenter-feedback" class="feedback" style="display: none;">
+              <p id="presenter-feedback-text"></p>
+            </div>
+          </div>
+
+          <div class="question-controls">
+            <button class="btn" onclick="previousQuestion()">Précédente</button>
+            <button class="btn" onclick="nextQuestionPresenter()">Suivante</button>
+            <button class="btn btn-secondary" onclick="showRandomQuestion()">Question Aléatoire</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section Réponses -->
+      <div class="presenter-responses">
+        <div class="card">
+          <h2>Statistiques des Réponses</h2>
+          <div class="response-chart">
+            <canvas id="responseChart"></canvas>
+          </div>
+          <div class="response-stats">
+            <p><strong>Nombre de participants :</strong> <span id="participant-count">0</span></p>
+            <p><strong>Score moyen :</strong> <span id="average-score">0</span></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Réponses par Thème</h2>
+          <div id="theme-stats"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Université Paris-Saclay - Pôle Tutorat Étudiant et Service Civique (DVEEC)</p>
+    </footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="questions.js"></script>
+  <script>
+    // Variables pour le présentateur
+    let currentPresenterQuestionIndex = 0;
+    let responseData = {
+      totalParticipants: 0,
+      scores: [],
+      themeStats: {}
+    };
+
+    // DOM Elements
+    const presenterQuestion = document.getElementById('presenter-question');
+    const presenterOptions = document.getElementById('presenter-options');
+    const presenterFeedback = document.getElementById('presenter-feedback');
+    const presenterFeedbackText = document.getElementById('presenter-feedback-text');
+    const participantCount = document.getElementById('participant-count');
+    const averageScore = document.getElementById('average-score');
+    const themeStats = document.getElementById('theme-stats');
+
+    // Chart
+    let responseChart;
+
+    // Initialiser le chart
+    function initChart() {
+      const ctx = document.getElementById('responseChart').getContext('2d');
+      responseChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Bonne réponse', 'Mauvaise réponse'],
+          datasets: [{
+            label: 'Réponses',
+            data: [0, 0],
+            backgroundColor: [
+              'rgba(64, 183, 105, 0.7)', // Vert
+              'rgba(238, 53, 36, 0.7)'  // Rouge
+            ],
+            borderColor: [
+              'rgba(64, 183, 105, 1)',
+              'rgba(238, 53, 36, 1)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    // Afficher une question dans le mode présentateur
+    function showPresenterQuestion(index) {
+      const question = questions[index];
+      presenterQuestion.textContent = question.question;
+
+      // Vider les options précédentes
+      presenterOptions.innerHTML = '';
+
+      // Afficher les options
+      if (question.type === 'QCM' || question.type === 'Vrai/Faux') {
+        question.options.forEach(option => {
+          const optionElement = document.createElement('div');
+          optionElement.className = 'option';
+          optionElement.textContent = option;
+          if (option === question.correctAnswer) {
+            optionElement.classList.add('correct');
+          }
+          presenterOptions.appendChild(optionElement);
+        });
+      } else if (question.type === 'QCM_multiple') {
+        question.options.forEach(option => {
+          const optionElement = document.createElement('div');
+          optionElement.className = 'option';
+          if (question.correctAnswer.includes(option)) {
+            optionElement.classList.add('correct');
+          }
+          optionElement.textContent = option;
+          presenterOptions.appendChild(optionElement);
+        });
+      }
+
+      // Afficher le feedback
+      presenterFeedbackText.innerHTML = `
+        <strong>Réponse correcte :</strong> ${question.type === 'QCM_multiple'
+          ? question.correctAnswer.join(', ')
+          : question.correctAnswer}<br>
+        <strong>Explication :</strong> ${question.explanation}
+      `;
+      presenterFeedback.style.display = 'block';
+    }
+
+    // Fonctions de navigation
+    function nextQuestionPresenter() {
+      currentPresenterQuestionIndex = (currentPresenterQuestionIndex + 1) % questions.length;
+      showPresenterQuestion(currentPresenterQuestionIndex);
+    }
+
+    function previousQuestion() {
+      currentPresenterQuestionIndex = (currentPresenterQuestionIndex - 1 + questions.length) % questions.length;
+      showPresenterQuestion(currentPresenterQuestionIndex);
+    }
+
+    function showRandomQuestion() {
+      currentPresenterQuestionIndex = Math.floor(Math.random() * questions.length);
+      showPresenterQuestion(currentPresenterQuestionIndex);
+    }
+
+    // Mettre à jour les statistiques (simulé)
+    function updateStats() {
+      // Simuler des données (dans une vraie app, cela viendrait des réponses des étudiants)
+      participantCount.textContent = responseData.totalParticipants;
+      averageScore.textContent = responseData.scores.length > 0
+        ? (responseData.scores.reduce((a, b) => a + b, 0) / responseData.scores.length).toFixed(1)
+        : '0';
+
+      // Mettre à jour le chart
+      const correctAnswers = 70; // Exemple
+      const wrongAnswers = 30; // Exemple
+      responseChart.data.datasets[0].data = [correctAnswers, wrongAnswers];
+      responseChart.update();
+
+      // Mettre à jour les stats par thème
+      themeStats.innerHTML = '';
+      for (const [theme, count] of Object.entries(responseData.themeStats)) {
+        const statElement = document.createElement('p');
+        statElement.innerHTML = `<strong>${theme}:</strong> ${count} questions`;
+        themeStats.appendChild(statElement);
+      }
+    }
+
+    // Initialisation
+    window.onload = function() {
+      initChart();
+      showPresenterQuestion(currentPresenterQuestionIndex);
+      updateStats();
+    };
+  </script>
+</body>
+</html>
